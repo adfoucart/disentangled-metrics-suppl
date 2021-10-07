@@ -215,6 +215,16 @@ def getTeamDQSQs(team_dir: str, ext: str) -> List[Tuple[float, float]]:
     return DQSQs
 
 
+def add_hd_of_matches(gt_idxs: np.array, pred_idxs: np.array, matches: ImageMatches, hd_acc: list, hd_per_class: list):
+    """Compute the HDs for an image and append to the accumulators"""
+    for match in matches.matches:
+        gt_contour = gt_idxs == match.gt_idx - erosion(gt_idxs == match.gt_idx, disk(1))
+        pred_contour = pred_idxs == match.pred_idx - erosion(pred_idxs == match.pred_idx, disk(1))
+        hd = hausdorff_distance(gt_contour, pred_contour)
+        hd_acc.append(hd)
+        hd_per_class[match.gt_class - 1].append(hd)
+
+
 def getTeamHausdorffDistances(team_dir: str, team_masks: dict, gt_nary_masks: dict, ext: str):
     hds = []
     hd_class = [[] for _ in range(4)]
@@ -230,12 +240,13 @@ def getTeamHausdorffDistances(team_dir: str, team_masks: dict, gt_nary_masks: di
             with open(os.path.join(patient_dir, f"{im}{ext}.pkl"), "rb") as fp:
                 matches = pickle.load(fp)
 
-            pred_contours = [pred == i - erosion(pred == i, disk(1)) for i in np.unique(pred) if i > 0]
+            add_hd_of_matches(gt, pred, matches, patient_hds, patient_hds_per_class)
+            """pred_contours = [pred == i - erosion(pred == i, disk(1)) for i in np.unique(pred) if i > 0]
             gt_contours = [gt == i - erosion(gt == i, disk(1)) for i in np.unique(gt) if i > 0]
             for match in matches.matches:
                 hd = hausdorff_distance(gt_contours[match.gt_idx - 1], pred_contours[match.pred_idx - 1])
                 patient_hds.append(hd)
-                patient_hds_per_class[match.gt_class - 1].append(hd)
+                patient_hds_per_class[match.gt_class - 1].append(hd)"""
 
         hds.append(statistics.mean(patient_hds))
         for classid in range(4):

@@ -2,7 +2,6 @@ import pickle
 import os
 import numpy as np
 from skimage.measure import regionprops
-from nary_masks_ops import ClassLabels
 
 
 class Match:
